@@ -1,0 +1,113 @@
+library(readr)
+library(irr)
+library(mice)
+library(VIM)
+library(GO.db)
+library(clusterProfiler)
+library(DOSE)
+library(limma)
+library(edgeR)
+library(pheatmap)
+library(WGCNA)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(pca3d)
+library(rgl)
+library(survival)
+library(survminer)
+library(ggpubr)
+library(glmnet)
+library(caret)
+library(survivalROC)
+library(rms)
+library(corrplot)
+
+allowWGCNAThreads()
+
+CTfeatures1 <- read.csv("CTfeatures1.csv") 
+CTfeatures2 <- read.csv("CTfeatures2.csv")
+naindex <- which(is.na(CTfeatures1),arr.ind = T)
+for(col in naindex[,2]){
+  if(is.na(CTfeatures1[46,col])){
+    CTfeatures1[46,col] <- median(CTfeatures1[,col],na.rm = T)
+  }
+  if(is.na(CTfeatures1[54,col])){
+    CTfeatures1[54,col] <- median(CTfeatures1[,col],na.rm = T)
+  }
+}
+which(is.na(CTfeatures1),arr.ind = T)
+naindex <- which(is.na(CTfeatures2),arr.ind = T)
+for(col in naindex[,2]){
+  if(is.na(CTfeatures2[46,col])){
+    CTfeatures2[46,col] <- median(CTfeatures2[,col],na.rm = T)
+  }
+  if(is.na(CTfeatures2[54,col])){
+    CTfeatures2[54,col] <- median(CTfeatures2[,col],na.rm = T)
+  }
+}
+which(is.na(CTfeatures2),arr.ind = T)
+len <- ncol(CTfeatures1) - 3
+icc_val <- vector(length = len)
+thr <- 0.75
+for (i in 4:ncol(CTfeatures1)){
+  ratings <- cbind(CTfeatures1[,i],CTfeatures2[,i])
+  icc <- icc(ratings, model = "twoway", 
+             type = "agreement", 
+             unit = "single", r0 = 0, conf.level = 0.95)
+  icc_val[i] <- icc$value
+}
+Index <- which(icc_val > thr)
+dim(icc_val)=c(1,ncol(CTfeatures1))
+write.csv( icc_val,file = "output.csv",row.names = F)
+colname_CT <- colnames(CTfeatures1)
+ICC_sig <- colname_CT[Index]
+datExpr <- CTfeatures1[, ICC_sig]
+datExpr <- cbind(CTfeatures1[,1:3], datExpr)
+write.csv( datExpr,file = "CTfeatures_ICC.csv",row.names = F)
+
+CTfeatures <- read.csv("CTfeatures_new.csv") 
+scaleCTfeatures <- scale(CTfeatures[,4:ncol(CTfeatures)],center=TRUE,scale = TRUE)
+final_scale_CTfeatures<- CTfeatures
+final_scale_CTfeatures[,4:ncol(CTfeatures)]<-scaleCTfeatures
+write.csv(final_scale_CTfeatures,file = "final_scale_CTfeature.csv",row.names = F)
+CTfeatureFile = "final_scale_CTfeature.csv" 
+CT_data <- read.csv(CTfeatureFile) 
+rownames(CT_data) <- CT_data[,1]
+test_name <- read.table("test.txt")
+test_name <- test_name[2:nrow(test_name),]
+train_name <- read.table("train.txt")
+train_name <- train_name[2:nrow(train_name),]
+CT_data_test <- CT_data[test_name,]
+CT_data_train <- CT_data[train_name,]
+write.csv(CT_data_test, file = "CT_data_test.csv", row.names = F)
+write.csv(CT_data_train, file = "CT_data_train.csv", row.names = F)
+
+hisfeatures <- read.csv("hisfeatures_new.csv") 
+scalehisfeatures <- scale(hisfeatures[,4:ncol(hisfeatures)],center=TRUE,scale = TRUE)
+final_scale_hisfeatures<- hisfeatures
+final_scale_hisfeatures[,4:ncol(hisfeatures)]<-scalehisfeatures
+write.csv(final_scale_hisfeatures,file = "final_scale_hisfeature.csv",row.names = F)
+hisfeatureFile = "final_scale_hisfeature.csv" 
+his_data <- read.csv(hisfeatureFile) 
+rownames(his_data) <- his_data[,1]
+test_name <- read.table("test.txt")
+test_name <- test_name[2:nrow(test_name),]
+train_name <- read.table("train.txt")
+train_name <- train_name[2:nrow(train_name),]
+his_data_test <- his_data[test_name,]
+his_data_train <- his_data[train_name,]
+write.csv(his_data_test, file = "his_data_test.csv", row.names = F)
+write.csv(his_data_train, file = "his_data_train.csv", row.names = F)
+
+genefeatureFile_no = "datExpr_new.csv" 
+gene_data_no <- read.csv(genefeatureFile_no) 
+rownames(gene_data_no) <- gene_data_no[,1]
+test_name <- read.table("test.txt")
+test_name <- test_name[2:nrow(test_name),]
+train_name <- read.table("train.txt")
+train_name <- train_name[2:nrow(train_name),]
+gene_data_no_test <- gene_data_no[test_name,]
+gene_data_no_train <- gene_data_no[train_name,]
+write.csv(gene_data_no_test, file = "gene_data_no_test.csv", row.names = F)
+write.csv(gene_data_no_train, file = "gene_data_no_train.csv", row.names = F)
